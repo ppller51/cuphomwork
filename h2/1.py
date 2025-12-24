@@ -4,7 +4,6 @@ import cv2
 import matplotlib.pyplot as plt
 
 
-# ===================== 工具：目录与保存 =====================
 def ensure_dir(d):
     os.makedirs(d, exist_ok=True)
 
@@ -24,7 +23,6 @@ def normalize_to_uint8(x: np.ndarray, eps=1e-6) -> np.ndarray:
     return (y * 255.0).clip(0, 255).astype(np.uint8)
 
 
-# ===================== 读图（固定路径） =====================
 def read_gray_fixed():
     path = r"F:\h2\test.png"
     img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
@@ -41,7 +39,7 @@ def read_bgr_fixed():
     return img
 
 
-# ===================== 手写卷积（2D） =====================
+# 手写卷积（2D）
 def conv2d(img: np.ndarray, kernel: np.ndarray) -> np.ndarray:
     kH, kW = kernel.shape
     if (kH % 2 == 0) or (kW % 2 == 0) or (kH < 3) or (kW < 3):
@@ -64,7 +62,7 @@ def conv2d(img: np.ndarray, kernel: np.ndarray) -> np.ndarray:
     return out
 
 
-# ===================== 1) Sobel（手写） =====================
+#  1) Sobel 
 def sobel_gradients(gray: np.ndarray):
     Kx = np.array([[-1, 0, 1],
                    [-2, 0, 2],
@@ -80,7 +78,7 @@ def sobel_gradients(gray: np.ndarray):
     return gx, gy, mag, ang
 
 
-# ===================== 2) Canny（手写核心） =====================
+#  2) Canny 
 def non_max_suppression(mag: np.ndarray, ang: np.ndarray) -> np.ndarray:
     H, W = mag.shape
     out = np.zeros((H, W), dtype=np.float32)
@@ -172,7 +170,7 @@ def canny_manual(gray: np.ndarray,
     }
 
 
-# ===================== 3) Harris（手写核心 + 参数扫描） =====================
+#  3) Harris 
 def harris_manual(gray: np.ndarray, k=0.04, win_sigma=1.5, thresh_ratio=0.01, nms_ksize=3):
     gx, gy, _, _ = sobel_gradients(gray)
 
@@ -212,7 +210,7 @@ def draw_corners(bgr: np.ndarray, xs, ys, radius=3):
     return out
 
 
-# ===================== 4) 直方图均衡化（手写） =====================
+#  4) 直方图均衡化 
 def hist_equalize_gray(gray_u8: np.ndarray):
     hist = np.bincount(gray_u8.ravel(), minlength=256).astype(np.float32)
     cdf = np.cumsum(hist)
@@ -228,7 +226,7 @@ def hist_equalize_gray(gray_u8: np.ndarray):
     return eq, hist, hist_eq
 
 
-# ===================== 可视化保存 =====================
+#  可视化
 def save_gray_image(title, img_float_or_u8, out_path, normalize=True):
     if img_float_or_u8.dtype != np.uint8 and normalize:
         vis = normalize_to_uint8(img_float_or_u8)
@@ -270,7 +268,6 @@ def save_hist_compare(img_before_u8, img_after_u8, hist_before, hist_after, out_
     plt.close()
 
 
-# ===================== 主程序（固定输入路径） =====================
 def main():
     out_dir = "outputs"
     ensure_dir(out_dir)
@@ -278,13 +275,13 @@ def main():
     gray = read_gray_fixed()
     bgr = read_bgr_fixed()
 
-    # ---------- 1) Sobel ----------
+    #  1) Sobel 
     gx, gy, mag, ang = sobel_gradients(gray)
     save_gray_image("Sobel |Gx|", np.abs(gx), os.path.join(out_dir, "sobel_gx.png"))
     save_gray_image("Sobel |Gy|", np.abs(gy), os.path.join(out_dir, "sobel_gy.png"))
     save_gray_image("Sobel Magnitude", mag, os.path.join(out_dir, "sobel_mag.png"))
 
-    # ---------- 2) Canny 手写（展示每步结果） ----------
+    #  2) Canny 
     canny = canny_manual(gray, blur_ksize=5, blur_sigma=1.2, low_ratio=0.08, high_ratio=0.20)
     save_gray_image("Canny Step1: Gaussian Blur", canny["blurred"], os.path.join(out_dir, "canny_blur.png"))
     save_gray_image("Canny Step2: Gradient Magnitude", canny["mag"], os.path.join(out_dir, "canny_mag.png"))
@@ -296,7 +293,7 @@ def main():
         normalize=False
     )
 
-    # ---------- 3) Harris 参数影响分析 ----------
+    #  3) Harris 参数影响分析 
     win_sigmas = [1.0, 2.0, 3.0]
     nms_ksizes = [3, 5, 7]
 
@@ -336,7 +333,7 @@ def main():
             f.write(f"{sigma},{nms_k},{cnt}\n")
     print("[Saved]", csv_path)
 
-    # 角点数量对比图（简单一张）
+    # 角点数量对比图
     plt.figure(figsize=(10, 5))
     plt.plot([r[2] for r in rows])
     plt.title("Harris Corner Count Sweep (order = sigma x nms_ksize)")
@@ -345,7 +342,7 @@ def main():
     save_fig(os.path.join(out_dir, "harris_param_sweep_plot.png"))
     plt.close()
 
-    # ---------- 4) 直方图均衡化 ----------
+    #  4) 直方图均衡化 
     gray_u8 = np.clip(gray, 0, 255).astype(np.uint8)
     eq, hist_before, hist_after = hist_equalize_gray(gray_u8)
 
@@ -358,3 +355,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
